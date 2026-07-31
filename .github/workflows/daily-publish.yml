@@ -1,0 +1,33 @@
+name: Daily Instagram Publish
+
+on:
+  schedule:
+    # 17:00 UTC = 19:00 CEST (summer) / 18:00 CET (winter)
+    - cron: '0 17 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Publish today's carousel
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: python publish.py
+
+      - name: Commit updated state
+        run: |
+          git config user.name "top10-publisher-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add state.json
+          git diff --quiet --cached || git commit -m "Update state after publish [skip ci]"
+          git push
